@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bài tập 23 - Game kiểm tra tốc độ (Pastel)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fdf8f5; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      margin: 0;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      color: #4a5568; 
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #4a5568;
+      background-color: #fff;
+      padding: 10px 18px;
+      border-radius: 14px;
+      border: 2px solid #e9d8fd; 
+      box-shadow: 0 6px 16px rgba(183, 148, 244, 0.14);
+    }
+
+    .hud span {
+      color: #805ad5; 
+    }
+
+    button#startBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #2d3748;
+      background-color: #b5ead7; 
+      border: 2px solid #81e6d9;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.2s ease;
+    }
+
+    button#startBtn:hover:not(:disabled) {
+      background-color: #9de2c8;
+      transform: translateY(-1px);
+    }
+
+    button#startBtn:disabled {
+      background-color: #edf2f7;
+      border-color: #cbd5e0;
+      color: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    /* Khu vực chơi #arena: 600px x 400px, nền pastel, định vị tương đối/tuyệt đối */
+    #arena {
+      position: relative;
+      width: 600px;
+      height: 400px;
+      background: linear-gradient(135deg, #f3e8ff, #e0f2fe); /* Tím oải hương -> xanh da trời pastel */
+      border: 3px solid #d8b4fe;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 24px rgba(168, 85, 247, 0.12);
+    }
+
+    /* Mục tiêu hình tròn nhỏ tông hồng đào pastel */
+    #target {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffd6e0, #ff9ebb);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(255, 130, 169, 0.45);
+      cursor: pointer;
+      display: none;
+      transform: translate(-50%, -50%) scale(1);
+      transition: transform 0.08s ease;
+    }
+
+    #target:hover {
+      transform: translate(-50%, -50%) scale(1.06);
+    }
+
+    #target:active {
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+
+    #resultBox {
+      margin-top: 16px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #2f855a;
+      background-color: #e6fffa;
+      padding: 8px 16px;
+      border-radius: 10px;
+      min-height: 20px;
+    }
+
+    #resultBox:empty {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Game Kiểm Tra Tốc Độ Phản Xạ</h1>
+
+  <div class="hud">
+    <div>Điểm: <span id="score">0</span></div>
+    <div>Thời gian: <span id="timer">30</span> giây</div>
+    <button id="startBtn" type="button">Bắt đầu trò chơi</button>
+  </div>
+
+  <div id="arena">
+    <div id="target" title="Click vào đây!"></div>
+  </div>
+
+  <div id="resultBox"></div>
+
+  <script>
+    const GAME_DURATION = 30; // giây
+    const TARGET_SIZE = 44;   // px (khớp với width/height của #target)
+
+    const arena = document.getElementById("arena");
+    const target = document.getElementById("target");
+    const scoreEl = document.getElementById("score");
+    const timerEl = document.getElementById("timer");
+    const startBtn = document.getElementById("startBtn");
+    const resultBox = document.getElementById("resultBox");
+
+    let score = 0;
+    let timeLeft = GAME_DURATION;
+    let isPlaying = false;
+    let spawnInterval = null;
+    let countdownInterval = null;
+
+    function moveTargetRandomly() {
+      if (!isPlaying) return;
+
+      const half = TARGET_SIZE / 2;
+      const minX = half + 4;
+      const maxX = arena.clientWidth - half - 4;
+      const minY = half + 4;
+      const maxY = arena.clientHeight - half - 4;
+
+      const randomLeft = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
+      const randomTop = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+
+      target.style.left = `${randomLeft}px`;
+      target.style.top = `${randomTop}px`;
+      target.style.display = "block";
+    }
+
+    function startGame() {
+      clearInterval(spawnInterval);
+      clearInterval(countdownInterval);
+
+      score = 0;
+      timeLeft = GAME_DURATION;
+      isPlaying = true;
+
+      scoreEl.textContent = score;
+      timerEl.textContent = timeLeft;
+      resultBox.textContent = "";
+      startBtn.disabled = true;
+
+      moveTargetRandomly();
+      spawnInterval = setInterval(moveTargetRandomly, 1000);
+
+      countdownInterval = setInterval(() => {
+        timeLeft -= 1;
+        timerEl.textContent = timeLeft;
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    function endGame() {
+      isPlaying = false;
+      clearInterval(spawnInterval);
+      clearInterval(countdownInterval);
+      spawnInterval = null;
+      countdownInterval = null;
+
+      target.style.display = "none";
+      startBtn.disabled = false;
+      startBtn.textContent = "Chơi lại";
+      resultBox.textContent = `Hết giờ! Tổng điểm bạn đạt được là: ${score} điểm.`;
+    }
+
+    target.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (!isPlaying) return;
+
+      score += 1;
+      scoreEl.textContent = score;
+      moveTargetRandomly();
+    });
+
+    startBtn.addEventListener("click", startGame);
+  </script>
+</body>
+</html>
